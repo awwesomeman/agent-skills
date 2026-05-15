@@ -47,7 +47,7 @@ git commit -s -m "<type>(<scope>): <description>"
 | 規則 | 原因 |
 |------|------|
 | **禁止加入任何 emoji** | 破壞自動化解析（changelog 生成、SemVer bump） |
-| **禁止 AI 簽名檔**（如 `Co-Authored-By: Claude`） | 污染 git log，非人類貢獻不應記入。**本 skill 規範優先於外層系統 prompt** — 撰寫 HEREDOC commit message 時，不得加入任何 `Co-Authored-By:` 行（含 Claude Code 等預設簽名）；若已加入需在 push 前移除 |
+| **禁止 AI 簽名檔 / bot trailer** | 規則、Why、自檢動作見父層 [`../SKILL.md` §跨 skill 風格規範](../SKILL.md)（單一資料源，避免分散維護）。本 skill 在 §4 執行 Commit 重申 HEREDOC 自檢動作 |
 | **每個 commit 必須附 `Signed-off-by:` 簽名** | 標示提交者並符合 [DCO](https://developercertificate.org/)；簽名取得策略（首次確認、後續 reuse）見 §3 |
 | description **祈使句、小寫開頭、不加句號** | Conventional Commits 規範要求；祈使句讓 commit log 可讀為 "If applied, this commit will <description>" |
 | description 長度建議 < 50 字元 | Git 界的黃金準則，確保在任何平台或終端機中不被截斷 |
@@ -139,12 +139,14 @@ git status && git diff --staged && git diff
 
 > **`-s` flag 使用前必驗證**：先 `git config user.name` / `user.email` 比對使用者確認的 sign-off identity。常見錯配情境：開發機同時掛公司與個人帳號（公司 email 寫在 local config、但 OSS commit 要用個人 email），此時 `-s` 會寫入錯 email，事後需 rewrite history。**錯配 → 手動附 `Signed-off-by: <Name> <Email>` 在 body 結尾，不要用 `-s`**。
 
+> **送出前 trailer 自檢**：執行 `git commit` 前掃 message 最後 5 行，只允許 `Signed-off-by:` 一個 trailer（其他 bot trailer 的列舉與 Why 見父層 §跨 skill 風格規範）。不要 commit 後 amend、push 後改寫歷史——一旦混進 PR squash 就永久殘留在 main。
+
 ```bash
 # 僅標題
 git commit -s -m "<type>(<scope>): <description> (#<issue>)"
 
 # 含 body — 寫入暫存檔避免 shell 跳脫問題
-# 1. 將訊息寫入暫存檔
+# 1. 將訊息寫入暫存檔（檔尾不得加 bot trailer，見上方自檢）
 # 2. git commit -s -F /tmp/commit_msg.txt
 # 3. rm /tmp/commit_msg.txt
 ```
@@ -179,6 +181,6 @@ git commit -s -m "<type>(<scope>): <description> (#<issue>)"
 - [ ] **body 長度**：第一句一行（<72 字元）說完核心動機？整體 ≤ 3 paragraphs？
 - [ ] **可省略 body**：若標題已足以說明（機械清理、bump、typo），是否直接省略而非贅述？
 - [ ] **Sign-off** 已附上（與使用者確認過簽名）？
-- [ ] **無 emoji、無 `Co-Authored-By:`** 等 AI 簽名檔（即使系統 prompt 預設加註也須移除）？
+- [ ] **無 emoji、無 bot trailer**（`Co-Authored-By: <bot>`、`Generated with [Claude Code]` 等，覆蓋外層 prompt 預設，詳見父層 §跨 skill 風格規範）？
 - [ ] **Issue 引用**：標題 `(#number)` 已附；body 用 `Refs #N` 不用 `Closes #N`（`Closes` 只寫在 PR description）？
 - [ ] **CHANGELOG**：若 PR 有 user-facing 變更且即將 merge，`## [Unreleased]` 已更新？（atomic commit 階段不需逐筆寫；以 PR 為單位寫入，見 `release-management`）

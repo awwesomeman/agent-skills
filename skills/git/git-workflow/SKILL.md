@@ -161,6 +161,8 @@ Closes #<issue-number>
 > **`Closes #N`** 必寫於描述末——merge 後 GitHub 自動關閉 issue，避免人工漏關。
 >
 > **`Closes` 只寫在 PR description**（與 squash commit message）；**commit body 中若需引用 issue，用 `Refs #N`** — `Closes` 寫在 commit body 也會被 GitHub 解析觸發關閉，造成 atomic commit 流程中提前關閉 issue。
+>
+> **PR body 禁止 bot trailer**（`Generated with [Claude Code]`、`Co-Authored-By: <bot>` 等）：規則與 Why 見父層 [`../SKILL.md` §跨 skill 風格規範](../SKILL.md)，`gh pr create` 前掃 body 末尾刪除。
 
 ## 4. Issue / PR Body 紀律：Tense-Neutral
 
@@ -206,6 +208,7 @@ GitHub 預設會把「PR 標題 + 全部 commit 訊息」灌進 squash message�
 |-------|-----|
 | 保留預設 commit 列表 dump | main log 變雜訊，看不出這次 PR 真正做了什麼 |
 | Squash 訊息違反 Conventional Commits | 任何 changelog / SemVer 工具（commitizen、semantic-release 等）都需要正確 type 才能分類 |
+| Squash body 殘留 bot trailer（`Co-Authored-By: <bot>`、`Generated with [Claude Code]` 等） | GitHub squash UI 會聚合 PR commits 的 trailer，即使個別 commit 已乾淨仍可能被外層 prompt 範例注入；merge 前需檢視並刪除（規則與 Why 見父層 [`../SKILL.md` §跨 skill 風格規範](../SKILL.md)） |
 
 ## 6. 禁止事項與安全
 
