@@ -8,7 +8,7 @@
 # Add, remove, or modify AI agents here.
 AI_TOOLS_CONFIGS=(
   "antigravity-cli|Antigravity CLI|$HOME/.gemini/antigravity-cli|.agents/skills"
-  "antigravity-ide|Antigravity IDE|$HOME/.gemini/antigravity|.agent/skills"
+  "antigravity-ide|Antigravity IDE|$HOME/.gemini/antigravity-ide|.agent/skills"
   "claude|Claude Code|$HOME/.claude|.claude/skills"
   "codex|Codex|$HOME/.agents|.agents/skills"
   "cursor|Cursor|$HOME/.cursor|.cursor/skills"

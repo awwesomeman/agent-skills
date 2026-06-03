@@ -92,7 +92,7 @@ agent-skills/
 | 工具 | 本地路徑 | 全域路徑 |
 |------|----------|----------|
 | Antigravity CLI | `.agents/skills/` | `~/.gemini/antigravity-cli/skills/` |
-| Antigravity IDE | `.agent/skills/` | `~/.gemini/antigravity/skills/`（亦會掃描 `~/.agent/skills/`） |
+| Antigravity IDE | `.agent/skills/` | `~/.gemini/antigravity-ide/skills/`（亦會掃描 `~/.agent/skills/`） |
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Codex | `.agents/skills/` | `~/.agents/skills/` |
 | Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
