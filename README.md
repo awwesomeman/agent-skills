@@ -31,7 +31,7 @@ Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
 | `--yes` | `-y` | （僅 `uninstall.sh`）搭配 `--force` 跳過互動確認，適用於 pipe/非互動情境 | 需互動確認 |
 | `[AI_TOOLS...]` | — | 指定目標 AI 工具（位置參數，可多個） | 自動偵測已安裝的工具 |
 
-支援的 AI 工具名稱：`antigravity-ide`, `claude`, `codex`, `cursor`, `gemini`, `copilot`, `opencode`, `windsurf`, `openclaw`。
+支援的 AI 工具名稱：`antigravity-cli`, `antigravity-ide`, `claude`, `codex`, `cursor`, `copilot`, `opencode`, `windsurf`, `openclaw`。
 
 ### 調用語法對照表
 
@@ -91,11 +91,11 @@ agent-skills/
 
 | 工具 | 本地路徑 | 全域路徑 |
 |------|----------|----------|
-| Antigravity IDE | `.antigravity-ide/skills/` | `~/.gemini/antigravity-ide/skills/` |
+| Antigravity CLI | `.agents/skills/` | `~/.gemini/antigravity-cli/skills/` |
+| Antigravity IDE | `.agent/skills/` | `~/.gemini/antigravity/skills/`（亦會掃描 `~/.agent/skills/`） |
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Codex | `.agents/skills/` | `~/.agents/skills/` |
 | Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
 | GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
 | OpenCode | `.opencode/skills/` | `~/.config/opencode/skills/` |
 | Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
