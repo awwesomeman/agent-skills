@@ -103,7 +103,7 @@ Issue 內容依時效性分三層落腳，對齊 Jira / Linear 的 Description /
 | **Body** | Problem（為什麼要做）、References（學術 / 規範依據）、Refs（相關 issue）|
 | **Top comment** | Expected（API shape / 契約）、DoD checklist、決策表 / rationale |
 
-> DoD 即使住在 comment，**checkbox 一律不勾**的紀律仍適用（見 §4），由 sub-issue 完成度作為 SSOT。
+> DoD 即使住在 comment，**checkbox 勾選規範仍適用**（見 §4）：中小型 Issue 可勾選追蹤，大型 Issue 由 sub-issue 完成度作為 SSOT 且 checkbox 保持不勾。
 
 **Why**：(1) body 過長時 GitHub UI 會自動 fold，Problem 與 solution 都被收起來，等於兩段都看不到；(2) solution 在 design 階段會迭代，改 comment（保留時序）比 force-push 改 body 更乾淨；(3) Problem 是 issue 永久 anchor，被 `Refs #N` 引用時讀者要先看到的是「在解什麼問題」而非實作細節。
 
@@ -178,7 +178,10 @@ Body **只寫永遠為真的事實**（內容範疇見 §2 三層分工表「永
 - DoD 綁分支：`- [x] tests on feat/X branch`（DoD 應為 spec 而非分支狀態）
 - commit SHA：`be50883`（squash 後即 rot）
 
-> **DoD checkbox 一律不勾**（本 skill 偏好，非業界慣例——Linear / Jira / GitHub task list 主流做法是勾選作完成標誌）：勾選即把進度狀態寫入 body，違反 tense-neutral。需要聚合進度時改走 §2 Sub-issue 拆分，由 GitHub 原生 sub-issue 完成度顯示作為 SSOT。進入既有專案時，先確認當地慣例再決定是否套用此規則。
+> **DoD checkbox 勾選規範**（平衡進度追蹤與維護性，非業界一成不變之慣例）：
+> 1. **中小型 Issue（單 PR 可完成）**：可直接勾選 body/comment 中的 DoD checkbox 以利直覺追蹤。
+> 2. **大型 Issue（需拆分多 PR）**：DoD checkbox 保持不勾（避免頻繁修改 body 違反 tense-neutral 與產生衝突），改走 §2 Sub-issue 拆分，由 GitHub 原生 sub-issue 完成度顯示作為 SSOT。
+> 進入既有專案時，先確認當地慣例再決定是否套用此規則。
 
 ## 5. Merge 策略
 
@@ -233,7 +236,7 @@ GitHub 預設會把「PR 標題 + 全部 commit 訊息」灌進 squash message�
 - [ ] PR 描述末有 `Closes #N`（子 issue 用子 id，不關父）？commit body 中引用 issue 改用 `Refs #N`？
 - [ ] Issue / PR body 只寫永遠為真的事實（spec / DoD / 定案 rationale），無 SHA / 分支名 / 進度字句？
 - [ ] Implementation Plan、多方案比較、brainstorming 已寫在 comments 而非 body？
-- [ ] DoD checkbox 未被勾選（聚合進度走 sub-issue，由 GitHub 原生完成度顯示作為 SSOT）？
+- [ ] DoD checkbox 符合規範（中小型 Issue 可勾選追蹤；大型 Issue 未被勾選，由 sub-issue 完成度作為 SSOT）？
 - [ ] Merge 觸發時已用 AskUserQuestion 詢問使用者選擇策略（squash / rebase / merge commit）？若選 squash，訊息已覆寫為 Conventional Commits 格式（不留預設 dump）？
 - [ ] 未經許可未使用禁止操作（force push、`--no-verify`、`reset --hard` 等）？
 - [ ] 沒有敏感資訊被提交？
