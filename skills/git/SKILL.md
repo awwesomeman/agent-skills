@@ -54,7 +54,7 @@ description: Git 相關技能入口。當執行 git commit、建立分支、撰�
 | **完整升級指引 / Migration note** | CHANGELOG `### Removed` / `### Changed` 條目本身（KaC 無 Migration section） | commit body 一行摘要可附於 `BREAKING CHANGE:` footer | 詳細多步驟升級不寫進 commit body（user 不讀 git log） |
 | **概念說明 / 使用範例 / 參數語意** | docstring、README、ARCHITECTURE.md | — | commit body、CHANGELOG（不是教學文件） |
 | **設計依據 / 數理推導 / pipeline 圖** | ARCHITECTURE.md、`docs/` | — | commit body、CHANGELOG |
-| **Issue / PR 追蹤連結** | commit 標題 `(#issue)`、commit body `Refs #N`、CHANGELOG entry `(#PR)`、PR description `Closes #N` | — | commit body 不用 `Closes #N`（會提前觸發關閉） |
+| **Issue / PR 追蹤連結** | commit 標題 `(#issue)`、commit body `Refs #N`、CHANGELOG entry `(#PR)`、PR description `Closes #N` | — | 專案程式碼與註解、docstring、README、ARCHITECTURE.md（Why：為防 Issue/PR 關閉或遷移後在程式碼中遺留過時無效的 dangling references 污染專案，且 issue 號碼不具備代碼行為的可讀性）；commit body 亦不用 `Closes #N`（會提前觸發關閉） |
 | **Planning labels**（`P1` / `Phase 1` / `Layer-A` / `backlog` 等規劃用標籤） | GitHub Labels（`priority/p1`、`phase/v1`）、Milestone、Project board | — | commit body、docstring、README、ARCHITECTURE.md、CHANGELOG（**Why**：標籤跟著 roadmap 改名／合併（`P1` → `P0`、`Phase 1` → `v1`），但 commit body 永久不可變、docstring / ARCHITECTURE.md 跟 release 綁定；標籤含意 drift 後這些檔案變成過時錯誤資訊。同時 AI agent 讀到 body 中的 `P1` 會當設計約束抄進下游檔案，放大污染） |
 
 ### 兩條經驗法則
