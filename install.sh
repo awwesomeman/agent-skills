@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install.sh — Install skills to AI agent skill directories via symlinks or copy.
-# Usage: bash install.sh [--local] [--copy] [--force] [--skills "git,python,quant"] [AI_TOOLS...]
+# Usage: bash install.sh [--local] [--copy] [--force] [--path DIR] [--skills "git,python,quant"] [AI_TOOLS...]
 # Re-run anytime skills are added/renamed to refresh symlinks or copies.
 set -euo pipefail
 
@@ -30,7 +30,7 @@ install_skill() {
   local target_name="$(basename "$target_path")"
   
   if [ -n "$real_source" ] && [ "$real_source" = "$real_target_parent/$target_name" ]; then
-    echo -e "${YELLOW}[SKIP] 目標等於來源，略過: $target_path${NC}"
+    echo -e "${YELLOW}[SKIP] Target resolves to source, skipping: $target_path${NC}"
     return
   fi
 
@@ -103,7 +103,7 @@ EXPLICIT_TARGETS=()
 USE_LOCAL=false
 USE_COPY=false
 USE_FORCE=false
-CUSTOM_TARGET_DIR=""
+CUSTOM_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -128,12 +128,12 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    -p|--target)
+    -p|--path)
       if [ -n "${2:-}" ]; then
-        CUSTOM_TARGET_DIR="$2"
+        CUSTOM_PATH="$2"
         shift 2
       else
-        echo -e "${YELLOW}[ERROR] --target requires a directory path${NC}"
+        echo -e "${YELLOW}[ERROR] --path requires a directory path${NC}"
         exit 1
       fi
       ;;
@@ -180,22 +180,23 @@ fi
 # Determine target AI tools
 TARGET_INDICES=()
 
-if [ -n "$CUSTOM_TARGET_DIR" ]; then
-  # --target overrides both auto-detection and --local: install into a single custom dir.
+if [ -n "$CUSTOM_PATH" ]; then
+  # --path installs straight into the given directory: skip AI-tool auto-detection
+  # and --local entirely, so unregistered/custom locations work without pre-setup.
   if [ "$USE_LOCAL" = true ]; then
-    echo -e "${YELLOW}[WARN] --target 會覆蓋 --local，以 --target 為準${NC}"
+    echo -e "${YELLOW}[WARN] --path overrides --local; using --path${NC}"
   fi
   if [ ${#EXPLICIT_TARGETS[@]} -gt 0 ]; then
-    echo -e "${YELLOW}[WARN] --target 會忽略位置參數 AI_TOOLS: ${EXPLICIT_TARGETS[*]}${NC}"
+    echo -e "${YELLOW}[WARN] --path ignores positional AI_TOOLS: ${EXPLICIT_TARGETS[*]}${NC}"
   fi
-  echo "Custom target directory specified: $CUSTOM_TARGET_DIR"
+  echo "Installing into custom path: $CUSTOM_PATH"
   TARGET_INDICES+=("manual")
 elif [ ${#EXPLICIT_TARGETS[@]} -eq 0 ]; then
   echo "No explicit targets provided. Auto-detecting installed AI tools..."
   for i in "${!AI_TOOLS_NAMES[@]}"; do
     if [ "$USE_LOCAL" = true ]; then
-      # 偵測用基底 (e.g. .cursor) 存在即視為此工具在本專案有在用；
-      # 顯示的是真正會被寫入的 skills 目錄路徑，避免訊息與實際操作目標不一致。
+      # An existing base dir (e.g. .cursor) means this tool is in use in the project;
+      # show the actual skills dir that will be written so the message matches the target.
       local_base="$(pwd)/${AI_TOOLS_LOCAL_PATHS[$i]%/skills}"
       local_target="$(pwd)/${AI_TOOLS_LOCAL_PATHS[$i]}"
       if [ -d "$local_base" ]; then
@@ -216,14 +217,27 @@ else
     found=false
     for i in "${!AI_TOOLS_ARGS[@]}"; do
       if [ "${AI_TOOLS_ARGS[$i]}" = "$arg_lower" ]; then
-        TARGET_INDICES+=("$i")
         found=true
-        echo -e "${GREEN}Selected: ${AI_TOOLS_NAMES[$i]}${NC}"
+        # Honour the same "must be installed" rule as auto-detection: skip a named
+        # tool whose base dir is absent. Use --path to install into an arbitrary dir.
+        if [ "$USE_LOCAL" = true ]; then
+          check_base="$(pwd)/${AI_TOOLS_LOCAL_PATHS[$i]%/skills}"
+        else
+          check_base="${AI_TOOLS_BASES[$i]}"
+        fi
+        if [ ! -d "$check_base" ]; then
+          echo -e "${YELLOW}[WARN] ${AI_TOOLS_NAMES[$i]} not installed, skipping: $check_base${NC}"
+          echo -e "${YELLOW}       To install there anyway, use: --path <dir>${NC}"
+        else
+          TARGET_INDICES+=("$i")
+          echo -e "${GREEN}Selected: ${AI_TOOLS_NAMES[$i]}${NC}"
+        fi
         break
       fi
     done
     if [ "$found" = false ]; then
-      echo -e "${YELLOW}[WARN] Unknown target: $arg (Available: ${AI_TOOLS_ARGS[*]})${NC}"
+      echo -e "${YELLOW}[WARN] Unknown AI tool: $arg (Available: ${AI_TOOLS_ARGS[*]})${NC}"
+      echo -e "${YELLOW}       To install into a custom directory, use: --path <dir>${NC}"
     fi
   done
 fi
@@ -236,7 +250,7 @@ if [ ${#TARGET_INDICES[@]} -eq 0 ]; then
   exit 1
 fi
 
-if [ "$USE_LOCAL" = true ] && [ -z "$CUSTOM_TARGET_DIR" ]; then
+if [ "$USE_LOCAL" = true ] && [ -z "$CUSTOM_PATH" ]; then
   INSTALL_ROOT="$(pwd)"
   echo -e "${BLUE}Installing to local paths under: $INSTALL_ROOT${NC}"
   echo ""
@@ -245,8 +259,8 @@ fi
 last_target_base=""
 for i in "${TARGET_INDICES[@]}"; do
   if [ "$i" = "manual" ]; then
-    tool="Manual"
-    target_base="$CUSTOM_TARGET_DIR"
+    tool="Custom path"
+    target_base="$CUSTOM_PATH"
   else
     tool="${AI_TOOLS_NAMES[$i]}"
     if [ "$USE_LOCAL" = true ]; then
