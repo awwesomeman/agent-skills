@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # uninstall.sh — Remove symlinks and copied skills created by install.sh.
-# Usage: bash uninstall.sh [--local] [--force] [--yes] [--skills "git,python,quant"] [AI_TOOLS...]
+# Usage: bash uninstall.sh [--local] [--force] [--yes] [--path DIR] [--skills "git,python,quant"] [AI_TOOLS...]
 # Does NOT delete source files in this repository.
 set -euo pipefail
 
@@ -20,8 +20,8 @@ confirm_force_remove() {
   if [ "$ASSUME_YES" = true ]; then
     return 0
   fi
-  # /dev/tty 的設備節點幾乎永遠存在，-e 不代表真的有可用的控制終端
-  # （cron/systemd/ssh -T 等情境會 open 失敗）。實測可讀性才準確。
+  # The /dev/tty device node almost always exists, so -e does not prove a usable
+  # controlling terminal (cron/systemd/ssh -T etc. fail to open it). Probe readability instead.
   if ! { : < /dev/tty; } 2>/dev/null; then
     echo -e "${RED}[ABORT] --force on unmanaged path requires a TTY for confirmation: $path${NC}"
     echo -e "${RED}        Re-run with --yes to skip interactive confirmation (dangerous).${NC}"
@@ -37,15 +37,16 @@ remove_skill() {
   local path="$1"
   local source_path="$2"
 
-  # Safety: 當 target 是「真實目錄」(非 symlink) 且其絕對路徑等於 source 時才保護。
-  # symlink 要允許移除（否則 install 出來的 symlink 無法被卸載），
-  # 因此必須排除 -L；-L 判斷要先於 -d 以免被 symlink-to-dir 誤判。
+  # Safety: only protect when target is a real directory (not a symlink) whose
+  # absolute path equals source. symlinks must stay removable (otherwise symlinks
+  # created by install cannot be uninstalled), so exclude -L; check -L before -d
+  # to avoid misclassifying a symlink-to-dir.
   if [ -n "$source_path" ] && [ ! -L "$path" ] && [ -d "$path" ] && [ -d "$source_path" ]; then
     local real_source real_target
     real_source="$(cd -P "$source_path" 2>/dev/null && pwd || true)"
     real_target="$(cd -P "$path" 2>/dev/null && pwd || true)"
     if [ -n "$real_source" ] && [ "$real_source" = "$real_target" ]; then
-      echo -e "${YELLOW}[SKIP] 目標等於來源，拒絕刪除: $path${NC}"
+      echo -e "${YELLOW}[SKIP] Target resolves to source, refusing to delete: $path${NC}"
       return
     fi
   fi
@@ -78,7 +79,7 @@ SELECTED_SKILLS=()
 EXPLICIT_TARGETS=()
 USE_LOCAL=false
 USE_FORCE=false
-CUSTOM_TARGET_DIR=""
+CUSTOM_PATH=""
 ASSUME_YES=false
 
 while [[ $# -gt 0 ]]; do
@@ -104,12 +105,12 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       ;;
-    -p|--target)
+    -p|--path)
       if [ -n "${2:-}" ]; then
-        CUSTOM_TARGET_DIR="$2"
+        CUSTOM_PATH="$2"
         shift 2
       else
-        echo -e "${YELLOW}[ERROR] --target requires a directory path${NC}"
+        echo -e "${YELLOW}[ERROR] --path requires a directory path${NC}"
         exit 1
       fi
       ;;
@@ -156,15 +157,16 @@ fi
 # Determine which tools to uninstall from
 TARGET_INDICES=()
 
-if [ -n "$CUSTOM_TARGET_DIR" ]; then
-  # --target overrides both auto-detection and --local: remove from a single custom dir.
+if [ -n "$CUSTOM_PATH" ]; then
+  # --path removes straight from the given directory: skip AI-tool auto-detection
+  # and --local entirely, so unregistered/custom locations work without pre-setup.
   if [ "$USE_LOCAL" = true ]; then
-    echo -e "${YELLOW}[WARN] --target 會覆蓋 --local，以 --target 為準${NC}"
+    echo -e "${YELLOW}[WARN] --path overrides --local; using --path${NC}"
   fi
   if [ ${#EXPLICIT_TARGETS[@]} -gt 0 ]; then
-    echo -e "${YELLOW}[WARN] --target 會忽略位置參數 AI_TOOLS: ${EXPLICIT_TARGETS[*]}${NC}"
+    echo -e "${YELLOW}[WARN] --path ignores positional AI_TOOLS: ${EXPLICIT_TARGETS[*]}${NC}"
   fi
-  echo "Custom target directory specified: $CUSTOM_TARGET_DIR"
+  echo "Removing from custom path: $CUSTOM_PATH"
   TARGET_INDICES+=("manual")
 elif [ ${#EXPLICIT_TARGETS[@]} -eq 0 ]; then
   echo "No explicit targets provided. Auto-detecting installed AI tools..."
@@ -190,14 +192,27 @@ else
     found=false
     for i in "${!AI_TOOLS_ARGS[@]}"; do
       if [ "${AI_TOOLS_ARGS[$i]}" = "$arg_lower" ]; then
-        TARGET_INDICES+=("$i")
         found=true
-        echo -e "${GREEN}Selected: ${AI_TOOLS_NAMES[$i]}${NC}"
+        # Same "must be installed" rule as auto-detection: skip a named tool whose
+        # base dir is absent (nothing to remove). Use --path for an arbitrary dir.
+        if [ "$USE_LOCAL" = true ]; then
+          check_base="$(pwd)/${AI_TOOLS_LOCAL_PATHS[$i]%/skills}"
+        else
+          check_base="${AI_TOOLS_BASES[$i]}"
+        fi
+        if [ ! -d "$check_base" ]; then
+          echo -e "${YELLOW}[WARN] ${AI_TOOLS_NAMES[$i]} not installed, skipping: $check_base${NC}"
+          echo -e "${YELLOW}       To remove from a specific dir, use: --path <dir>${NC}"
+        else
+          TARGET_INDICES+=("$i")
+          echo -e "${GREEN}Selected: ${AI_TOOLS_NAMES[$i]}${NC}"
+        fi
         break
       fi
     done
     if [ "$found" = false ]; then
-      echo -e "${YELLOW}[WARN] Unknown target: $arg (Available: ${AI_TOOLS_ARGS[*]})${NC}"
+      echo -e "${YELLOW}[WARN] Unknown AI tool: $arg (Available: ${AI_TOOLS_ARGS[*]})${NC}"
+      echo -e "${YELLOW}       To remove from a custom directory, use: --path <dir>${NC}"
     fi
   done
 fi
@@ -210,7 +225,7 @@ if [ ${#TARGET_INDICES[@]} -eq 0 ]; then
   exit 1
 fi
 
-if [ "$USE_LOCAL" = true ] && [ -z "$CUSTOM_TARGET_DIR" ]; then
+if [ "$USE_LOCAL" = true ] && [ -z "$CUSTOM_PATH" ]; then
   UNINSTALL_ROOT="$(pwd)"
   echo -e "${BLUE}Removing from local paths under: $UNINSTALL_ROOT${NC}"
   echo ""
@@ -218,8 +233,8 @@ fi
 
 for i in "${TARGET_INDICES[@]}"; do
   if [ "$i" = "manual" ]; then
-    tool="Manual"
-    target_base="$CUSTOM_TARGET_DIR"
+    tool="Custom path"
+    target_base="$CUSTOM_PATH"
   else
     tool="${AI_TOOLS_NAMES[$i]}"
     if [ "$USE_LOCAL" = true ]; then
