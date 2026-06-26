@@ -4,11 +4,21 @@
 
 **Single Source of Truth** — 在這裡修改 skill，所有 AI 工具自動同步。
 
+## 目錄
+
+- [安裝與解除安裝](#安裝與解除安裝)
+- [目錄結構](#目錄結構)
+- [支援的 AI 工具](#支援的-ai-工具)
+- [Quant Skills 概覽](#quant-skills-概覽)
+- [新增 Skill 的 SOP](#新增-skill-的-sop)
+- [更新技巧](#更新技巧)
+- [解除安裝](#解除安裝)
+
 ---
 
 ## 安裝與解除安裝
 
-### 0. 取得專案
+### 取得專案
 
 ```bash
 git clone https://github.com/your-org/agent-skills.git
@@ -27,11 +37,44 @@ Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
 | `--local` | `-l` | 將技能安裝到「執行這行指令所在的目錄」內（如專案根目錄下的 `.cursor/skills/` 等），而非全域安裝 | 全域路徑 |
 | `--copy` | `-c` | 複製實際檔案取代 symlink，適用於無法保留 clone 的情境 | symlink |
 | `--force` | `-f` | `install`：強制覆蓋既有目錄；`uninstall`：強制移除非本工具管理路徑（預設 TTY 互動確認） | 略過 |
-| `--target <dir>` | `-p` | 指定自定義目標安裝目錄（覆蓋預設路徑） | 自動偵測 |
+| `--path <dir>` | `-p` | 直接安裝到指定目錄（跳過 AI 工具偵測，覆蓋預設路徑） | 自動偵測 |
 | `--yes` | `-y` | （僅 `uninstall.sh`）搭配 `--force` 跳過互動確認，適用於 pipe/非互動情境 | 需互動確認 |
 | `[AI_TOOLS...]` | — | 指定目標 AI 工具（位置參數，可多個） | 自動偵測已安裝的工具 |
 
 支援的 AI 工具名稱：`antigravity-cli`, `antigravity-ide`, `claude`, `codex`, `cursor`, `copilot`, `opencode`, `windsurf`, `openclaw`。
+
+> 指定工具名稱（位置參數）時只會安裝到「已安裝」的工具；若該工具未安裝會印 `[WARN] ... 未安裝，略過`。要寫入任意目錄請改用 `--path`。
+
+### 常用指令
+
+```bash
+# 全域安裝全部技能到所有「已安裝」的 AI 工具（自動偵測）
+bash install.sh
+
+# 只安裝到指定工具（可多個）
+bash install.sh claude cursor
+
+# 只安裝特定技能分類（逗號分隔，支援前綴比對）
+bash install.sh -s "python,git"
+
+# 安裝到目前專案目錄下（.claude/skills、.cursor/skills ...）
+bash install.sh --local
+
+# 直接安裝到任意自定義目錄（跳過 AI 工具偵測，全新目錄也可）
+bash install.sh --path ~/my-agent/skills
+
+# 用複製取代 symlink（無法保留 clone 的情境）
+bash install.sh --copy
+
+# 遠端安裝免 clone（預設 copy 模式）
+curl -fsSL https://raw.githubusercontent.com/awwesomeman/agent-skills/main/remote-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/awwesomeman/agent-skills/main/remote-install.sh | bash -s -- -s "python,git" cursor claude
+
+# 解除安裝（用法與 install 對稱）
+bash uninstall.sh                       # 自動偵測並移除
+bash uninstall.sh claude                # 指定工具
+bash uninstall.sh --path ~/my-agent/skills
+```
 
 ### 調用語法對照表
 
@@ -48,7 +91,7 @@ Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
 | **指定 AI 工具** | `bash install.sh cursor` | `cursor` | `bash uninstall.sh cursor` | `cursor` |
 | **指定技能分類** | `bash install.sh -s "python,git"` | `-s "python,git"` | `bash uninstall.sh -s "quant"` | `-s "quant"` |
 | **本地專案路徑** | `bash install.sh --local` | `--local` | `bash uninstall.sh --local` | `--local` |
-| **自定義目標路徑** | `bash install.sh --target "/p"` | `--target "/p"` | `bash uninstall.sh --target "/p"` | `--target "/p"` |
+| **自定義目標路徑** | `bash install.sh --path "/p"` | `--path "/p"` | `bash uninstall.sh --path "/p"` | `--path "/p"` |
 | **強制覆蓋／移除既有項** | `bash install.sh --force` | `--force` | `bash uninstall.sh --force` | `--force --yes` |
 | **複製模式（非 symlink）** | `bash install.sh --copy` | （遠端預設即 copy） | — | — |
 | **組合用例** | `bash install.sh -f -s "git" cursor` | `-f -s "git" cursor` | `bash uninstall.sh -s "git" cursor` | `-s "git" cursor` |
@@ -58,7 +101,7 @@ Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
 - **`-s --` 分隔符**：`curl | bash` 傳參時必須使用 `-s --` 引導，否則 `| bash "claude"` 會被 Bash 當成要執行系統上的 `claude`，噴 `syntax error near unexpected token`。
 - **預設模式差異**：地端 install 預設 symlink、遠端 install 自動 `--copy`（因此遠端更新技能後需重跑）。uninstall 自動辨識兩種，無差異。
 - **`--force` 風險**：會 `rm -rf` 同名目錄（含非本工具建立者）。`uninstall --force` 預設走 TTY 互動確認；`curl | bash` 無 TTY，需再加 `--yes` 才會執行。
-- **參數覆蓋順序**：`--target` 同時蓋過 `--local` 與位置參數（腳本會印 `[WARN]`）。
+- **參數覆蓋順序**：`--path` 同時蓋過 `--local` 與位置參數（腳本會印 `[WARN]`）；指定 `--path` 時不會偵測已安裝的 AI 工具，可直接寫入任意目錄。
 - **Fork 自用**：`GITHUB_REPO=user/repo curl -fsSL <BASE>/remote-install.sh | bash` 切換到自己的 repo。
 
 ---
