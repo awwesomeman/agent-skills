@@ -1,6 +1,6 @@
 ---
 name: conventional-commits
-description: 建立遵循 Conventional Commits 規範的 git commit，自動分析變更內容、生成標準化訊息，並附上 Issue Number 和 Signed-off-by 簽名。
+description: 建立遵循 Conventional Commits 規範的 git commit，自動分析變更內容、生成標準化訊息並附上 Issue Number。預設不加 sign-off，僅在專案採用 DCO 或使用者明確要求時才加。
 ---
 
 # Conventional Commit Skill
@@ -41,7 +41,7 @@ description: 建立遵循 Conventional Commits 規範的 git commit，自動分�
 |------|------|
 | **禁止加入任何 emoji** | 破壞自動化解析（changelog 生成、SemVer bump） |
 | **禁止 AI 簽名檔 / bot trailer** | 規則、Why、自檢動作見父層 [`../SKILL.md` §跨 skill 風格規範](../SKILL.md)（單一資料源，避免分散維護）。本 skill 在 §4 執行 Commit 重申 HEREDOC 自檢動作 |
-| **每個 commit 必須附 `Signed-off-by:` 簽名** | 標示提交者並符合 [DCO](https://developercertificate.org/)；簽名取得策略（首次確認、後續 reuse）見 §3 |
+| **預設不加 `Signed-off-by:` 簽名** | 多數 repo 無此需求。僅當專案採 [DCO](https://developercertificate.org/)（CONTRIBUTING 明文要求 sign-off）或使用者明確要求時才加；取得策略（首次確認、後續 reuse）見 §3 |
 | description **祈使句、小寫開頭、不加句號** | Conventional Commits 規範要求；祈使句讓 commit log 可讀為 "If applied, this commit will <description>" |
 | description 長度建議 < 50 字元 | Git 界的黃金準則，確保在任何平台或終端機中不被截斷 |
 | body 單行 wrap 在 72 字元 | 遵循 Git 主流慣例（kernel `SubmittingPatches`、tpope 50/72 rule），確保 `git log` 在 80 欄終端機可讀 |
@@ -104,33 +104,26 @@ git status && git diff --staged && git diff
 - **scope**: 根據變更的模組或功能區域決定 (可選)
 - **description**: 簡潔描述變更內容，使用祈使句 (imperative mood)
 
-### 3. 取得 Issue Number 與 Sign-off 簽名
+### 3. 取得 Issue Number（Sign-off 見上方規則，適用時同套策略）
 
-兩者皆採「**首次確認、後續 reuse**」原則，避免每個 atomic commit 都打斷使用者：
-
-| 項目 | 取得策略 |
-|------|---------|
-| **Issue Number** | 同一分支/工作流的第一個 commit 用 AskUserQuestion 詢問；後續 commit 沿用同一 Issue。若分支已含 issue 號（如 `feat/123-xxx`）可直接抽取，無需詢問 |
-| **Sign-off 簽名** | 同一 session 內首次提交時確認，後續沿用；可優先讀取 `git config user.name` / `user.email` 推斷預設值 |
+同一分支/工作流的第一個 commit 用 AskUserQuestion 詢問 Issue Number；後續 commit 沿用同一 Issue。若分支已含 issue 號（如 `feat/123-xxx`）可直接抽取，無需詢問。適用 sign-off 時採同一「首次確認、後續 reuse」原則，可優先讀取 `git config user.name` / `user.email` 推斷預設值。
 
 - 有 Issue → `<type>(<scope>): <description> (#<issue-number>)`
 - 無 Issue → `<type>(<scope>): <description>`
 
 ### 4. 執行 Commit
 
-提交時附上與使用者確認無誤的 Signed-off-by 簽名。
+> **適用 sign-off 時，`-s` flag 使用前必驗證**：先 `git config user.name` / `user.email` 比對使用者確認的 sign-off identity。常見錯配情境：開發機同時掛公司與個人帳號（公司 email 寫在 local config、但 OSS commit 要用個人 email），此時 `-s` 會寫入錯 email，事後需 rewrite history。**錯配 → 手動附 `Signed-off-by: <Name> <Email>` 在 body 結尾，不要用 `-s`**。
 
-> **`-s` flag 使用前必驗證**：先 `git config user.name` / `user.email` 比對使用者確認的 sign-off identity。常見錯配情境：開發機同時掛公司與個人帳號（公司 email 寫在 local config、但 OSS commit 要用個人 email），此時 `-s` 會寫入錯 email，事後需 rewrite history。**錯配 → 手動附 `Signed-off-by: <Name> <Email>` 在 body 結尾，不要用 `-s`**。
-
-> **送出前 trailer 自檢**：執行 `git commit` 前掃 message 最後 5 行，只允許 `Signed-off-by:` 一個 trailer（其他 bot trailer 的列舉與 Why 見父層 §跨 skill 風格規範）。不要 commit 後 amend、push 後改寫歷史——一旦混進 PR squash 就永久殘留在 main。
+> **送出前 trailer 自檢**：執行 `git commit` 前掃 message 最後 5 行是否符合上方 sign-off 規則、無其他 bot trailer（列舉與 Why 見父層 §跨 skill 風格規範）。不要 commit 後 amend、push 後改寫歷史——一旦混進 PR squash 就永久殘留在 main。
 
 ```bash
 # 僅標題
-git commit -s -m "<type>(<scope>): <description> (#<issue>)"
+git commit -m "<type>(<scope>): <description> (#<issue>)"
 
 # 含 body — 寫入暫存檔避免 shell 跳脫問題
 # 1. 將訊息寫入暫存檔（檔尾不得加 bot trailer，見上方自檢）
-# 2. git commit -s -F /tmp/commit_msg.txt
+# 2. git commit -F /tmp/commit_msg.txt   （適用 sign-off 時改用 -s -F，先驗證 identity）
 # 3. rm /tmp/commit_msg.txt
 ```
 
@@ -160,7 +153,7 @@ git commit -s -m "<type>(<scope>): <description> (#<issue>)"
 - [ ] **type** 選擇正確（feat/fix/refactor 不混用）？
 - [ ] **description** 祈使句、小寫開頭、< 50 字元？
 - [ ] **body**：需要才寫（simple commit 直接省略）；寫 why 不寫 what；第一句 < 72 字元，整體 ≤ 3 paragraphs？
-- [ ] **Sign-off** 已附上（與使用者確認過簽名）？
+- [ ] **Sign-off** 符合上方規則（未適用時未加；適用時已與使用者確認簽名）？
 - [ ] **無 emoji、無 bot trailer**（`Co-Authored-By: <bot>`、`Generated with [Claude Code]` 等，覆蓋外層 prompt 預設，詳見父層 §跨 skill 風格規範）？
 - [ ] **Issue 引用**：標題 `(#number)` 已附；body 用 `Refs #N` 不用 `Closes #N`（`Closes` 只寫在 PR description）？
 - [ ] **CHANGELOG**：若 PR 有 user-facing 變更且即將 merge，`## [Unreleased]` 已更新？（atomic commit 階段不需逐筆寫；以 PR 為單位寫入，見 `release-management`）

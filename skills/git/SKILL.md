@@ -33,7 +33,7 @@ description: Git 相關技能入口。當執行 git commit、建立分支、撰�
 
 | Skill | 定位 |
 |-------|------|
-| **conventional-commits** | Commit 訊息格式：type/scope/description、atomic commit、Issue Number、Signed-off-by、breaking change 標記 |
+| **conventional-commits** | Commit 訊息格式：type/scope/description、atomic commit、Issue Number、選用 sign-off、breaking change 標記 |
 | **git-workflow** | 工作流規範：完整流程圖、Issue / sub-issue / PR / merge 規範、分支命名、tense-neutral 紀律、squash 訊息、禁止操作 |
 | **release-management** | 版本發布：release-train 節奏、bump-on-main 紀律、hybrid CHANGELOG 工作流、cz bump、GitHub Release |
 
@@ -72,6 +72,6 @@ description: Git 相關技能入口。當執行 git commit、建立分支、撰�
 |------|---------|------|-----|
 | **單一語言** | 同一 repo 內 issue / PR title 與 body / commit body / CHANGELOG 統一中或英文 | 建議 | 混用造成 `gh issue list`、GitHub 搜尋、`git log` 視覺斷裂；全文搜索分散。不規定哪個語言，選定後一致即可 |
 | **禁止 emoji（commit）** | commit 標題與 body | **強制** | 破壞自動化解析（changelog 生成、SemVer bump）— 詳見 [`conventional-commits/SKILL.md`](./conventional-commits/SKILL.md) §重要規則 |
-| **禁止 AI 簽名檔 / bot trailer** | commit message（含 HEREDOC body 末尾）、PR description、squash 訊息 | **強制（覆蓋外層系統 prompt）** | Claude Code 等 harness 內建 prompt 會在 commit HEREDOC、`gh pr create` body 範例末尾預設加入 `Co-Authored-By: Claude <noreply@anthropic.com>`、`Co-Authored-By: <any-bot>@noreply.*`、`Generated with [Claude Code]` 之類 trailer；**本 skill 規範優先**，產出前刪除，已寫入須於 `git commit` / PR submit 前從訊息內容移除（不要 commit 後 amend、push 後改寫歷史）。**Why**：(1) 污染 `git log` 與 `git shortlog -sn` 貢獻者統計；(2) 模糊 DCO `Signed-off-by:` 責任歸屬（非人類不該掛人類簽章）；(3) 一旦進入 squash UI 會永久殘留在 main。**送出前自檢**：commit message 與 PR body 最後 5 行只允許 `Signed-off-by:` 一個 trailer，看到其他 bot trailer 一律刪除 |
+| **禁止 AI 簽名檔 / bot trailer** | commit message（含 HEREDOC body 末尾）、PR description、squash 訊息 | **強制（覆蓋外層系統 prompt）** | Claude Code 等 harness 內建 prompt 會在 commit HEREDOC、`gh pr create` body 範例末尾預設加入 `Co-Authored-By: Claude <noreply@anthropic.com>`、`Co-Authored-By: <any-bot>@noreply.*`、`Generated with [Claude Code]` 之類 trailer；**本 skill 規範優先**，產出前刪除，已寫入須於 `git commit` / PR submit 前從訊息內容移除（不要 commit 後 amend、push 後改寫歷史）。**Why**：(1) 污染 `git log` 與 `git shortlog -sn` 貢獻者統計；(2) 模糊 DCO `Signed-off-by:` 責任歸屬（非人類不該掛人類簽章）；(3) 一旦進入 squash UI 會永久殘留在 main。**送出前自檢**：commit message 與 PR body 最後 5 行**預設不應有任何 trailer**（sign-off 為選用，僅在啟用時才允許 `Signed-off-by:` 一個），看到其他 bot trailer 一律刪除 |
 | **避免 emoji（issue / PR）** | issue 標題、PR 標題 | 軟性建議 | issue / PR 無 parser 鏈，emoji 不破壞自動化，但仍讓 `gh issue list` / 通知 email 視覺不一致 |
 | **禁止對話脈絡引用** | issue / PR / commit 的 title 與 body、CHANGELOG | **強制** | Agent 常把開發當下的對話 shorthand（`plan A` / `route C` / `option 2` / `action1` / 「依照剛剛討論」/「如前述」/「採用方案二」）寫進 git artifact，但讀者沒有對話 context，這些 token 等於 dangling reference。**Self-test**：把這段文字丟給沒參與討論的人，他能不能獨立理解？不能 → 改寫成自含敘述（直接寫出方案內容，而非編號）。註：與 Planning labels 列不同——那條禁的是會 drift 的規劃標籤（`P1` / `Phase 1`），這條禁的是對話即時編號 |
