@@ -107,7 +107,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     -p|--path)
       if [ -n "${2:-}" ]; then
-        CUSTOM_PATH="$2"
+        # Normalize to an absolute path so downstream directory comparisons
+        # (e.g. resolving symlink targets) behave consistently.
+        case "$2" in
+          /*) CUSTOM_PATH="$2" ;;
+          *) CUSTOM_PATH="$(pwd)/$2" ;;
+        esac
         shift 2
       else
         echo -e "${YELLOW}[ERROR] --path requires a directory path${NC}"

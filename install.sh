@@ -44,8 +44,10 @@ install_skill() {
     # and do not touch the child -- even under --force -- to preserve the parent's integrity.
     if [ "$USE_COPY" = true ]; then
       local check_path="$target_path"
+      local prev_path=""
       local is_covered=false
-      while [ "$check_path" != "/" ] && [ -n "$check_path" ]; do
+      while [ "$check_path" != "/" ] && [ -n "$check_path" ] && [ "$check_path" != "$prev_path" ]; do
+        prev_path="$check_path"
         check_path="$(dirname "$check_path")"
         if [ -f "$check_path/.installed-by-agent-skills" ]; then
           is_covered=true
@@ -130,7 +132,13 @@ while [[ $# -gt 0 ]]; do
       ;;
     -p|--path)
       if [ -n "${2:-}" ]; then
-        CUSTOM_PATH="$2"
+        # Normalize to an absolute path: a relative path here makes the
+        # "covered by parent copy" dirname-walk below loop forever, since
+        # dirname(".") returns "." instead of ever reaching "/".
+        case "$2" in
+          /*) CUSTOM_PATH="$2" ;;
+          *) CUSTOM_PATH="$(pwd)/$2" ;;
+        esac
         shift 2
       else
         echo -e "${YELLOW}[ERROR] --path requires a directory path${NC}"
