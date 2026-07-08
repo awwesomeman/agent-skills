@@ -21,7 +21,7 @@
 ### 取得專案
 
 ```bash
-git clone https://github.com/your-org/agent-skills.git
+git clone https://github.com/awwesomeman/agent-skills.git
 cd agent-skills
 ```
 
@@ -37,7 +37,7 @@ Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
 | `--local` | `-l` | 將技能安裝到「執行這行指令所在的目錄」內（如專案根目錄下的 `.cursor/skills/` 等），而非全域安裝 | 全域路徑 |
 | `--copy` | `-c` | 複製實際檔案取代 symlink，適用於無法保留 clone 的情境 | symlink |
 | `--force` | `-f` | `install`：強制覆蓋既有目錄；`uninstall`：強制移除非本工具管理路徑（預設 TTY 互動確認） | 略過 |
-| `--path <dir>` | `-p` | 直接安裝到指定目錄（跳過 AI 工具偵測，覆蓋預設路徑） | 自動偵測 |
+| `--path <dir>` | `-p` | 直接安裝到指定目錄（跳過 AI 工具偵測，覆蓋預設路徑）。`<dir>` 即最終存放 skill 的資料夾，注意事項見下方「必讀注意」 | 自動偵測 |
 | `--yes` | `-y` | （僅 `uninstall.sh`）搭配 `--force` 跳過互動確認，適用於 pipe/非互動情境 | 需互動確認 |
 | `[AI_TOOLS...]` | — | 指定目標 AI 工具（位置參數，可多個） | 自動偵測已安裝的工具 |
 
@@ -61,7 +61,7 @@ bash install.sh -s "python,git"
 bash install.sh --local
 
 # 直接安裝到任意自定義目錄（跳過 AI 工具偵測，全新目錄也可）
-bash install.sh --path ~/my-agent/skills
+bash install.sh --path "~/my-agent/skills"
 
 # 用複製取代 symlink（無法保留 clone 的情境）
 bash install.sh --copy
@@ -73,7 +73,7 @@ curl -fsSL https://raw.githubusercontent.com/awwesomeman/agent-skills/main/remot
 # 解除安裝（用法與 install 對稱）
 bash uninstall.sh                       # 自動偵測並移除
 bash uninstall.sh claude                # 指定工具
-bash uninstall.sh --path ~/my-agent/skills
+bash uninstall.sh --path "~/my-agent/skills"
 ```
 
 ### 調用語法對照表
@@ -102,6 +102,8 @@ bash uninstall.sh --path ~/my-agent/skills
 - **預設模式差異**：地端 install 預設 symlink、遠端 install 自動 `--copy`（因此遠端更新技能後需重跑）。uninstall 自動辨識兩種，無差異。
 - **`--force` 風險**：會 `rm -rf` 同名目錄（含非本工具建立者）。`uninstall --force` 預設走 TTY 互動確認；`curl | bash` 無 TTY，需再加 `--yes` 才會執行。
 - **參數覆蓋順序**：`--path` 同時蓋過 `--local` 與位置參數（腳本會印 `[WARN]`）；指定 `--path` 時不會偵測已安裝的 AI 工具，可直接寫入任意目錄。
+- **`--path` 不會自動加 `skills/`**：`--path <dir>` 給的就是 skill 實際落地的目錄本身，和內建 AI 工具（自動補上 `.../skills`）不同。若目標工具需要 `skills/` 子目錄，要自己在路徑後面加上，例如 `--path "~/my-agent/skills"` 而非 `--path "~/my-agent"`。
+- **`--path` 路徑含空白務必加引號**：如 `--path "/Users/me/My Agent/skills"`。不加引號時空白後的字串會被 shell 拆成另一個位置參數，腳本只會印一句容易被忽略的 `[WARN] --path ignores positional AI_TOOLS: ...`，實際上是裝到被截斷的錯誤目錄，不會報錯。
 - **Fork 自用**：`GITHUB_REPO=user/repo curl -fsSL <BASE>/remote-install.sh | bash` 切換到自己的 repo。
 
 ---
