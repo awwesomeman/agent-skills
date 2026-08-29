@@ -6,26 +6,47 @@
 
 ## 目錄
 
-- [安裝與解除安裝](#安裝與解除安裝)
-- [目錄結構](#目錄結構)
+- [安裝](#安裝)
+  - [方式一：Plugin（Claude Code、Antigravity CLI）](#方式一plugin)
+  - [方式二：安裝腳本（所有工具）](#方式二安裝腳本)
+  - [解除安裝](#解除安裝)
 - [支援的 AI 工具](#支援的-ai-工具)
+- [目錄結構](#目錄結構)
 - [Quant Skills 概覽](#quant-skills-概覽)
 - [新增 Skill 的 SOP](#新增-skill-的-sop)
-- [更新技巧](#更新技巧)
-- [解除安裝](#解除安裝)
 
 ---
 
-## 安裝與解除安裝
+## 安裝
 
-### 取得專案
+兩種方式，擇一即可：Plugin 由工具自己管理更新，腳本則涵蓋所有工具。
+
+### 方式一：Plugin
+
+適用於支援 plugin marketplace 的工具。安裝後由工具本身負責更新，不需要保留 clone。
 
 ```bash
-git clone https://github.com/awwesomeman/agent-skills.git
-cd agent-skills
+# Claude Code（CLI 與 VSCode extension 共用 ~/.claude，裝一次兩邊都有）
+/plugin marketplace add awwesomeman/agent-skills
+/plugin install agent-skills@awwesomeman
+
+# Antigravity CLI
+agy plugin install agent-skills@awwesomeman
 ```
 
-> 建議 clone 到固定位置（如 `~/agent-skills`），因為 install 腳本會建立 symlink 指向此目錄。移動或刪除源目錄會導致所有 AI 工具的 skill 失效。
+更新：`/plugin marketplace update awwesomeman`。
+
+### 方式二：安裝腳本
+
+適用於所有工具，包含尚未支援 plugin 的 Codex、Cursor、Copilot 等。
+
+```bash
+git clone https://github.com/awwesomeman/agent-skills.git ~/agent-skills
+cd ~/agent-skills
+bash install.sh
+```
+
+> symlink 模式（預設）會指向此目錄，**移動或刪除 clone 會讓所有 skill 失效**，建議放在固定位置。
 
 ```
 Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
@@ -33,128 +54,99 @@ Usage: bash install.sh [OPTIONS] [AI_TOOLS...]
 
 | 參數 | 縮寫 | 說明 | 預設 |
 |------|------|------|------|
-| `--skills <list>` | `-s` | 指定要安裝的技能分類，逗號分隔，支援前綴比對 | 全部技能 |
-| `--local` | `-l` | 將技能安裝到「執行這行指令所在的目錄」內（如專案根目錄下的 `.cursor/skills/` 等），而非全域安裝 | 全域路徑 |
-| `--copy` | `-c` | 複製實際檔案取代 symlink，適用於無法保留 clone 的情境 | symlink |
-| `--force` | `-f` | `install`：強制覆蓋既有目錄；`uninstall`：強制移除非本工具管理路徑（預設 TTY 互動確認） | 略過 |
-| `--path <dir>` | `-p` | 直接安裝到指定目錄（跳過 AI 工具偵測，覆蓋預設路徑）。`<dir>` 即最終存放 skill 的資料夾，注意事項見下方「必讀注意」 | 自動偵測 |
-| `--yes` | `-y` | （僅 `uninstall.sh`）搭配 `--force` 跳過互動確認，適用於 pipe/非互動情境 | 需互動確認 |
-| `[AI_TOOLS...]` | — | 指定目標 AI 工具（位置參數，可多個） | 自動偵測已安裝的工具 |
-
-支援的 AI 工具名稱：`antigravity-cli`, `antigravity-ide`, `claude`, `codex`, `cursor`, `copilot`, `opencode`, `windsurf`, `openclaw`。
-
-> 指定工具名稱（位置參數）時只會安裝到「已安裝」的工具；若該工具未安裝會印 `[WARN] ... 未安裝，略過`。要寫入任意目錄請改用 `--path`。
-
-### 常用指令
+| `--skills <list>` | `-s` | 指定安裝的技能，逗號分隔 | 全部技能 |
+| `--local` | `-l` | 安裝到「執行指令所在的目錄」（如 `./.claude/skills/`），而非全域 | 全域 |
+| `--copy` | `-c` | 複製檔案取代 symlink，適用於無法保留 clone 的情境 | symlink |
+| `--force` | `-f` | `install`：覆蓋既有目錄；`uninstall`：移除非本工具管理的路徑（預設需 TTY 確認） | 略過 |
+| `--path <dir>` | `-p` | 直接安裝到指定目錄，跳過 AI 工具偵測 | 自動偵測 |
+| `--yes` | `-y` | （僅 `uninstall.sh`）搭配 `--force` 跳過互動確認，用於 pipe/非互動情境 | 需確認 |
+| `[AI_TOOLS...]` | — | 指定目標工具（可多個），名稱見[支援的 AI 工具](#支援的-ai-工具) | 偵測已安裝的工具 |
 
 ```bash
-# 全域安裝全部技能到所有「已安裝」的 AI 工具（自動偵測）
-bash install.sh
-
-# 只安裝到指定工具（可多個）
-bash install.sh claude cursor
-
-# 只安裝特定技能分類（逗號分隔，支援前綴比對）
-bash install.sh -s "python,git"
-
-# 安裝到目前專案目錄下（.claude/skills、.cursor/skills ...）
-bash install.sh --local
-
-# 直接安裝到任意自定義目錄（跳過 AI 工具偵測，全新目錄也可）
-bash install.sh --path "~/my-agent/skills"
-
-# 用複製取代 symlink（無法保留 clone 的情境）
-bash install.sh --copy
-
-# 遠端安裝免 clone（預設 copy 模式）
-curl -fsSL https://raw.githubusercontent.com/awwesomeman/agent-skills/main/remote-install.sh | bash
-curl -fsSL https://raw.githubusercontent.com/awwesomeman/agent-skills/main/remote-install.sh | bash -s -- -s "python,git" cursor claude
-
-# 解除安裝（用法與 install 對稱）
-bash uninstall.sh                       # 自動偵測並移除
-bash uninstall.sh claude                # 指定工具
-bash uninstall.sh --path "~/my-agent/skills"
+bash install.sh                          # 自動偵測，安裝全部技能
+bash install.sh claude cursor            # 只裝到指定工具
+bash install.sh -s "python,git"          # 只裝指定技能
+bash install.sh --local                  # 裝到目前專案目錄下
+bash install.sh --path "~/my-agent/skills"   # 裝到任意目錄
 ```
 
-### 調用語法對照表
+免 clone 的遠端安裝（預設即 `--copy`）：
 
-遠端指令格式（四個「遠端」欄位共用，表格內只列 `-s --` 之後要傳的參數）：
-
-- 遠端 install：`curl -fsSL <BASE>/remote-install.sh | bash [-s -- <參數>]`
-- 遠端 uninstall：`curl -fsSL <BASE>/remote-uninstall.sh | bash [-s -- <參數>]`
-- `<BASE>` = `https://raw.githubusercontent.com/awwesomeman/agent-skills/main`
-- `*` 代表無需額外參數（直接 `| bash`，不用 `-s --`）
-
-| 需求場景 | 地端 install | 遠端 install | 地端 uninstall | 遠端 uninstall |
-| :--- | :--- | :--- | :--- | :--- |
-| **基本（全域，全部技能）** | `bash install.sh` | `*` | `bash uninstall.sh` | `*` |
-| **指定 AI 工具** | `bash install.sh cursor` | `cursor` | `bash uninstall.sh cursor` | `cursor` |
-| **指定技能分類** | `bash install.sh -s "python,git"` | `-s "python,git"` | `bash uninstall.sh -s "quant"` | `-s "quant"` |
-| **本地專案路徑** | `bash install.sh --local` | `--local` | `bash uninstall.sh --local` | `--local` |
-| **自定義目標路徑** | `bash install.sh --path "/p"` | `--path "/p"` | `bash uninstall.sh --path "/p"` | `--path "/p"` |
-| **強制覆蓋／移除既有項** | `bash install.sh --force` | `--force` | `bash uninstall.sh --force` | `--force --yes` |
-| **複製模式（非 symlink）** | `bash install.sh --copy` | （遠端預設即 copy） | — | — |
-| **組合用例** | `bash install.sh -f -s "git" cursor` | `-f -s "git" cursor` | `bash uninstall.sh -s "git" cursor` | `-s "git" cursor` |
+```bash
+BASE=https://raw.githubusercontent.com/awwesomeman/agent-skills/main
+curl -fsSL $BASE/remote-install.sh | bash
+curl -fsSL $BASE/remote-install.sh | bash -s -- -s "python,git" cursor claude
+```
 
 **必讀注意**
 
-- **`-s --` 分隔符**：`curl | bash` 傳參時必須使用 `-s --` 引導，否則 `| bash "claude"` 會被 Bash 當成要執行系統上的 `claude`，噴 `syntax error near unexpected token`。
-- **預設模式差異**：地端 install 預設 symlink、遠端 install 自動 `--copy`（因此遠端更新技能後需重跑）。uninstall 自動辨識兩種，無差異。
-- **`--force` 風險**：會 `rm -rf` 同名目錄（含非本工具建立者）。`uninstall --force` 預設走 TTY 互動確認；`curl | bash` 無 TTY，需再加 `--yes` 才會執行。
-- **參數覆蓋順序**：`--path` 同時蓋過 `--local` 與位置參數（腳本會印 `[WARN]`）；指定 `--path` 時不會偵測已安裝的 AI 工具，可直接寫入任意目錄。
-- **`--path` 不會自動加 `skills/`**：`--path <dir>` 給的就是 skill 實際落地的目錄本身，和內建 AI 工具（自動補上 `.../skills`）不同。若目標工具需要 `skills/` 子目錄，要自己在路徑後面加上，例如 `--path "~/my-agent/skills"` 而非 `--path "~/my-agent"`。
-- **`--path` 路徑含空白務必加引號**：如 `--path "/Users/me/My Agent/skills"`。不加引號時空白後的字串會被 shell 拆成另一個位置參數，腳本只會印一句容易被忽略的 `[WARN] --path ignores positional AI_TOOLS: ...`，實際上是裝到被截斷的錯誤目錄，不會報錯。
-- **Fork 自用**：`GITHUB_REPO=user/repo curl -fsSL <BASE>/remote-install.sh | bash` 切換到自己的 repo。
+- **`curl | bash` 傳參要有 `-s --`**：否則 `| bash "claude"` 會被當成執行系統上的 `claude`，噴 `syntax error near unexpected token`。
+- **`--path` 就是最終目錄**：不會自動補 `skills/`。若目標工具需要，請自己寫上 `--path "~/my-agent/skills"`。路徑含空白務必加引號，否則會被 shell 拆成位置參數、裝到截斷後的錯誤目錄。
+- **指定工具名稱只會裝到「已安裝」的工具**，未安裝會印 `[WARN] ... not installed`。要寫入任意目錄請用 `--path`。
+- **`--path` 蓋過 `--local` 與位置參數**（會印 `[WARN]`），且不做工具偵測。
+- **`--force` 會 `rm -rf` 同名目錄**（含非本工具建立的）。`uninstall --force` 預設需 TTY 互動確認；`curl | bash` 無 TTY，須再加 `--yes`。
+- **Fork 自用**：`GITHUB_REPO=user/repo curl -fsSL $BASE/remote-install.sh | bash`。
 
----
+### 解除安裝
 
-## 目錄結構
+`uninstall.sh` 用法與 `install.sh` 對稱（`--local` / `--path` / `--skills` / 位置參數皆相同），會自動辨識 symlink 與 copy 兩種安裝，且**只移除本工具建立的項目**——symlink 需指向本 repo、copy 需有對應標記，其餘一律跳過並提示 `--force`。本專案的源文件永遠不會被動到。
 
-我們採用依賴關注點分離（Separation of Concerns）的設計，將技能歸類至不同的目錄：
-
-```
-agent-skills/
-├── skills/                           
-│   ├── git/                          # 版本控制與協作 (如 conventional-commits)
-│   ├── python/                       # 程式語言規範 (如 coding-standards)
-│   ├── quant/                        # 特定業務領域邏輯 (如回測、資料預處理)
-│   ├── skill-creator/                # 產生技能的 Meta-tool
-│   └── (其他分類...)                 
-│       ├── [技能名稱]/
-│       │   ├── SKILL.md              # 主文件（必要存在，AI 載入點）
-│       │   └── (其他關聯參考文件)
-├── install.sh                        # 安裝腳本（symlink 或 copy）
-├── uninstall.sh                      # 移除腳本（自動偵測 symlink 與 copy）
-├── remote-install.sh                 # 遠端安裝腳本（免 clone，curl | bash）
-├── remote-uninstall.sh               # 遠端移除腳本（免 clone，curl | bash）
-└── README.md
+```bash
+bash uninstall.sh                        # 自動偵測並移除
+bash uninstall.sh claude                 # 指定工具
+curl -fsSL $BASE/remote-uninstall.sh | bash
 ```
 
 ---
 
 ## 支援的 AI 工具
 
-| 工具 | 本地路徑 | 全域路徑 |
-|------|----------|----------|
-| Antigravity CLI | `.agents/skills/` | `~/.gemini/antigravity-cli/skills/` |
-| Antigravity IDE | `.agent/skills/` | `~/.gemini/antigravity-ide/skills/`（亦會掃描 `~/.agent/skills/`） |
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-| Codex | `.agents/skills/` | `~/.agents/skills/` |
-| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
-| GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
-| OpenCode | `.opencode/skills/` | `~/.config/opencode/skills/` |
-| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
-| OpenClaw | `.openclaw/skills/` | `~/.openclaw/skills/` |
+| 工具 | 參數名稱 | 全域路徑 | 專案路徑（`--local`） |
+|------|----------|----------|----------|
+| Antigravity CLI | `antigravity-cli` | `~/.gemini/antigravity-cli/skills/` | `.agents/skills/` |
+| Antigravity IDE | `antigravity-ide` | `~/.gemini/antigravity-ide/skills/` | `.agent/skills/` |
+| Claude Code | `claude` | `~/.claude/skills/` | `.claude/skills/` |
+| Codex | `codex` | `~/.codex/skills/` | `.agents/skills/` |
+| Cursor | `cursor` | `~/.cursor/skills/` | `.cursor/skills/` |
+| GitHub Copilot | `copilot` | `~/.copilot/skills/` | `.github/skills/` |
+| OpenCode | `opencode` | `~/.config/opencode/skills/` | `.opencode/skills/` |
+| Windsurf | `windsurf` | `~/.codeium/windsurf/skills/` | `.windsurf/skills/` |
+| OpenClaw | `openclaw` | `~/.openclaw/skills/` | `.openclaw/skills/` |
 
-> 參照 [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)
-> 如需新增工具或修正安裝路徑，請編輯 [`_config.sh`](./_config.sh)，install / uninstall 腳本會自動套用。
+CLI 與同品牌的 VSCode extension 共用同一個家目錄（Claude Code 用 `~/.claude`，Codex 用 `~/.codex`），裝一次兩邊都生效。
+
+> 參照 [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)。
+> 新增工具或修正路徑請編輯 [`_config.sh`](./_config.sh)，install / uninstall 會自動套用。
+
+---
+
+## 目錄結構
+
+依關注點分離（Separation of Concerns）將技能歸類至不同目錄：
+
+```
+agent-skills/
+├── skills/
+│   ├── git/                  # 版本控制與協作
+│   │   ├── SKILL.md          # 分類入口，路由到子技能
+│   │   └── conventional-commits/
+│   │       └── SKILL.md
+│   ├── python/               # 程式語言規範
+│   ├── quant/                # 特定業務領域邏輯
+│   └── skill-creator/        # 產生技能的 Meta-tool
+├── .claude-plugin/           # Plugin / marketplace manifest
+├── _config.sh                # AI 工具路徑設定 + 共用邏輯
+├── install.sh / uninstall.sh
+└── remote-install.sh / remote-uninstall.sh
+```
+
+**安裝單位是分類目錄**（`git`、`python`、`quant`…），不是個別子技能。各家 Agent 只掃描一層 `skills/<name>/SKILL.md`，子技能是靠分類入口的 `SKILL.md` 路由載入的；單獨安裝子技能會產生沒有工具會讀取的孤兒目錄。因此 `-s "git/conventional-commits"` 會解析成安裝整個 `git`。
 
 ---
 
 ## Quant Skills 概覽
 
 量化分析技能集以 pipeline 架構組織，詳見 [入口 SKILL.md](./skills/quant/SKILL.md) 的完整路由表。
-
 
 | Skill | 定位 |
 |-------|------|
@@ -171,27 +163,15 @@ agent-skills/
 
 ## 新增 Skill 的 SOP
 
-1. 在 `skills/` 下的對應分類中建立新目錄（如 `skills/python/new-skill/`）
+1. 在對應分類下建立目錄（如 `skills/python/new-skill/`）。
 2. 建立 `SKILL.md`，必須包含 YAML frontmatter：
    ```yaml
    ---
    name: skill-name
-   description: 一段清楚的描述，說明 AI 在什麼情境應該啟用這個 skill
+   description: 清楚描述 AI 在什麼情境應該啟用這個 skill
    ---
    ```
-3. 執行 `bash install.sh` 更新 symlink
-4. 開始一個新對話測試 AI 是否正確載入 skill
+3. 若新增的是**分類目錄**，執行 `bash install.sh` 建立連結；新增**子技能**則不需要，symlink 模式下源文件更新會即時生效。
+4. 開新對話測試 AI 是否正確載入。
 
----
-
-## 更新技巧
-
-使用 **symlink 模式**（預設）修改任何 `SKILL.md` 後，**不需要重新執行 `install.sh`**——symlink 指向的是目錄，源文件更新後所有 Agent 裡的設定會即時生效。只有在**新增或刪除 skill 目錄**時才需要重新執行 `install.sh`。
-
-使用 **`--copy` 模式或遠端安裝**的使用者，更新技能內容後需要**重新執行安裝指令**，因為檔案是獨立副本，不會自動同步。
-
----
-
-## 解除安裝
-
-指令參見上方 [調用語法對照表](#調用語法對照表) 的「地端 uninstall」／「遠端 uninstall」欄位。`uninstall.sh` / `remote-uninstall.sh` 會自動辨識 symlink 與 copy 兩種安裝，皆不會動到本專案的源文件。
+> `--copy` 模式與遠端安裝是獨立副本，不會自動同步，任何內容更新後都要重跑安裝指令。
