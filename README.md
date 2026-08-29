@@ -103,8 +103,7 @@ curl -fsSL $BASE/remote-uninstall.sh | bash
 
 | 工具 | 參數名稱 | 全域路徑 | 專案路徑（`--local`） |
 |------|----------|----------|----------|
-| Antigravity CLI | `antigravity-cli` | `~/.gemini/antigravity-cli/skills/` | `.agents/skills/` |
-| Antigravity IDE | `antigravity-ide` | `~/.gemini/antigravity-ide/skills/` | `.agent/skills/` |
+| Antigravity（CLI 與 IDE） | `antigravity` | `~/.gemini/config/skills/` | `.agents/skills/` |
 | Claude Code | `claude` | `~/.claude/skills/` | `.claude/skills/` |
 | Codex | `codex` | `~/.codex/skills/` | `.agents/skills/` |
 | Cursor | `cursor` | `~/.cursor/skills/` | `.cursor/skills/` |
@@ -113,7 +112,9 @@ curl -fsSL $BASE/remote-uninstall.sh | bash
 | Windsurf | `windsurf` | `~/.codeium/windsurf/skills/` | `.windsurf/skills/` |
 | OpenClaw | `openclaw` | `~/.openclaw/skills/` | `.openclaw/skills/` |
 
-CLI 與同品牌的 VSCode extension 共用同一個家目錄（Claude Code 用 `~/.claude`，Codex 用 `~/.codex`），裝一次兩邊都生效。
+CLI 與同品牌的 IDE / extension 共用同一個設定根（Claude Code 用 `~/.claude`，Codex 用 `~/.codex`，Antigravity 用 `~/.gemini/config`），裝一次兩邊都生效。
+
+各工具辨識 skill 的方式不同：Claude Code 用**目錄名**（`git`），Antigravity 用 frontmatter 的 **`name`**（`jpan-git`）。兩者都會載入，但在對話中指名時要用各自的稱呼。
 
 > 參照 [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)。
 > 新增工具或修正路徑請編輯 [`_config.sh`](./_config.sh)，install / uninstall 會自動套用。

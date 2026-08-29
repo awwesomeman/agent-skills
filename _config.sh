@@ -7,8 +7,7 @@
 # target_path is dynamically generated as "$base_path/skills" for all tools.
 # Add, remove, or modify AI agents here.
 AI_TOOLS_CONFIGS=(
-  "antigravity-cli|Antigravity CLI|$HOME/.gemini/antigravity-cli|.agents/skills"
-  "antigravity-ide|Antigravity IDE|$HOME/.gemini/antigravity-ide|.agent/skills"
+  "antigravity|Antigravity|$HOME/.gemini/config|.agents/skills"
   "claude|Claude Code|$HOME/.claude|.claude/skills"
   "codex|Codex|$HOME/.codex|.agents/skills"
   "cursor|Cursor|$HOME/.cursor|.cursor/skills"
