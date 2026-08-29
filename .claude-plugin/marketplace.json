@@ -1,0 +1,15 @@
+{
+  "name": "awwesomeman",
+  "owner": {
+    "name": "jason pan",
+    "url": "https://github.com/awwesomeman"
+  },
+  "description": "跨 Agent 使用的 AI Skills 統一管理專案（Single Source of Truth）",
+  "plugins": [
+    {
+      "name": "agent-skills",
+      "source": "./",
+      "description": "跨 Agent 共用的 AI Skills：git、python、quant、skill-creator"
+    }
+  ]
+}
