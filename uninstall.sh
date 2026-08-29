@@ -33,9 +33,26 @@ confirm_force_remove() {
   [ "$reply" = "yes" ]
 }
 
+# True when the entry at $path was created by this repo's install.sh:
+#   symlink -> it points into $REPO_ROOT/skills (readlink, so a repo that moved
+#              away still leaves a broken-but-identifiable link)
+#   copy    -> a marker for it exists beside the skills (or, for installs made by
+#              older versions, inside the copied directory)
+is_managed() {
+  local path="$1" marker="$2"
+  if [ -L "$path" ]; then
+    case "$(readlink "$path")" in
+      "$REPO_ROOT/skills/"*) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
+  [ -d "$path" ] && { [ -e "$marker" ] || [ -f "$path/.installed-by-agent-skills" ]; }
+}
+
 remove_skill() {
   local path="$1"
   local source_path="$2"
+  local marker="$3"
 
   # Safety: only protect when target is a real directory (not a symlink) whose
   # absolute path equals source. symlinks must stay removable (otherwise symlinks
@@ -51,13 +68,11 @@ remove_skill() {
     fi
   fi
 
-  if [ -L "$path" ]; then
-    rm "$path"
-    echo -e "${GREEN}Removed symlink: $path${NC}"
-  elif [ -d "$path" ] && [ -f "$path/.installed-by-agent-skills" ]; then
+  if is_managed "$path" "$marker"; then
     rm -rf "$path"
-    echo -e "${GREEN}Removed copied skill: $path${NC}"
-  elif [ -e "$path" ]; then
+    rm -f "$marker"
+    echo -e "${GREEN}Removed: $path${NC}"
+  elif [ -e "$path" ] || [ -L "$path" ]; then
     if [ "$USE_FORCE" = true ]; then
       if confirm_force_remove "$path"; then
         rm -rf "$path"
@@ -127,12 +142,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Find all valid skills
-ALL_SKILLS=()
-while IFS= read -r skill_file; do
-  skill_dir="${skill_file#skills/}"
-  skill_dir="${skill_dir%/SKILL.md}"
-  ALL_SKILLS+=("$skill_dir")
-done < <(cd "$REPO_ROOT" && find skills -mindepth 1 -name "SKILL.md" -type f | sort)
+discover_skills "$REPO_ROOT"
 
 if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
   echo -e "${YELLOW}[WARN] No skills found in skills/ directory.${NC}"
@@ -140,19 +150,7 @@ if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
 fi
 
 # Filter skills based on --skills argument
-SKILLS=()
-if [ ${#SELECTED_SKILLS[@]} -eq 0 ]; then
-  SKILLS=("${ALL_SKILLS[@]}")
-else
-  for found in "${ALL_SKILLS[@]}"; do
-    for target in "${SELECTED_SKILLS[@]}"; do
-      if [[ "$found" == "$target" || "$found" == "$target/"* ]]; then
-        SKILLS+=("$found")
-        break
-      fi
-    done
-  done
-fi
+filter_skills
 
 if [ ${#SKILLS[@]} -eq 0 ]; then
   echo -e "${YELLOW}[WARN] No skills matched the specified --skills filter: ${SELECTED_SKILLS[*]}${NC}"
@@ -236,6 +234,8 @@ if [ "$USE_LOCAL" = true ] && [ -z "$CUSTOM_PATH" ]; then
   echo ""
 fi
 
+# Two tools can resolve to the same directory (see install.sh); clean it once.
+PROCESSED_BASES=""
 for i in "${TARGET_INDICES[@]}"; do
   if [ "$i" = "manual" ]; then
     tool="Custom path"
@@ -248,19 +248,17 @@ for i in "${TARGET_INDICES[@]}"; do
       target_base="${AI_TOOLS_PATHS[$i]}"
     fi
   fi
+  case "$PROCESSED_BASES" in
+    *"|$target_base|"*) continue ;;
+  esac
+  PROCESSED_BASES="$PROCESSED_BASES|$target_base|"
   echo -e "${BLUE}-- Removing from $tool --${NC}"
   echo "Target: $target_base"
 
   for skill in "${SKILLS[@]}"; do
-    target_path="$target_base/$skill"
-    remove_skill "$target_path" "$REPO_ROOT/skills/$skill"
-
-    # Clean up empty parent directories (e.g. if ~/.cursor/skills/git is empty after removal)
-    parent_dir="$(dirname "$target_path")"
-    if [[ "$parent_dir" != "$target_base" && -d "$parent_dir" ]]; then
-      rmdir "$parent_dir" 2>/dev/null || true
-    fi
+    remove_skill "$target_base/$skill" "$REPO_ROOT/skills/$skill" "$target_base/$MARKER_DIR/$skill"
   done
+  rmdir "$target_base/$MARKER_DIR" 2>/dev/null || true
   echo ""
 done
 

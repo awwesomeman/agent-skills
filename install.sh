@@ -16,20 +16,22 @@ source "$REPO_ROOT/_config.sh"
 
 install_skill() {
   local skill_name="$1"
-  local target_path="$2"
+  local target_base="$2"
+  local target_path="$target_base/$skill_name"
   local source_path="$REPO_ROOT/skills/$skill_name"
+  local marker="$target_base/$MARKER_DIR/$skill_name"
 
   if [ ! -e "$source_path" ]; then
     echo -e "${YELLOW}[WARN] Skipping $skill_name -- source not found: $source_path${NC}"
     return
   fi
 
-  # Security check: skip if target is same as source to avoid self-deletion or circular links
-  local real_source="$(cd -P "$source_path" 2>/dev/null && pwd || true)"
-  local real_target_parent="$(cd -P "$(dirname "$target_path")" 2>/dev/null && pwd || true)"
-  local target_name="$(basename "$target_path")"
-  
-  if [ -n "$real_source" ] && [ "$real_source" = "$real_target_parent/$target_name" ]; then
+  # Refuse to install a skill over itself (e.g. --path pointing back at skills/),
+  # which would delete the source or create a circular link.
+  local real_source real_target_parent
+  real_source="$(cd -P "$source_path" 2>/dev/null && pwd || true)"
+  real_target_parent="$(cd -P "$(dirname "$target_path")" 2>/dev/null && pwd || true)"
+  if [ -n "$real_source" ] && [ "$real_source" = "$real_target_parent/$(basename "$target_path")" ]; then
     echo -e "${YELLOW}[SKIP] Target resolves to source, skipping: $target_path${NC}"
     return
   fi
@@ -40,35 +42,8 @@ install_skill() {
   if [ -L "$target_path" ]; then
     rm "$target_path"
   elif [ -d "$target_path" ]; then
-    # Short-circuit: if parent is already managed (copy or symlink), treat as covered
-    # and do not touch the child -- even under --force -- to preserve the parent's integrity.
-    if [ "$USE_COPY" = true ]; then
-      local check_path="$target_path"
-      local prev_path=""
-      local is_covered=false
-      while [ "$check_path" != "/" ] && [ -n "$check_path" ] && [ "$check_path" != "$prev_path" ]; do
-        prev_path="$check_path"
-        check_path="$(dirname "$check_path")"
-        if [ -f "$check_path/.installed-by-agent-skills" ]; then
-          is_covered=true
-          break
-        fi
-      done
-      if [ "$is_covered" = true ]; then
-        echo -e "${GREEN}[OK] $skill_name (covered by parent copy)${NC}"
-        return
-      fi
-    else
-      local res_target="$(cd -P "$target_path" 2>/dev/null && pwd || true)"
-      local res_source="$(cd -P "$source_path" 2>/dev/null && pwd || true)"
-      if [ -n "$res_target" ] && [ "$res_target" = "$res_source" ]; then
-        echo -e "${GREEN}[OK] $skill_name (covered by parent symlink)${NC}"
-        return
-      fi
-    fi
-
-    if [ -f "$target_path/.installed-by-agent-skills" ] || [ "$USE_FORCE" = true ]; then
-      if [ "$USE_FORCE" = true ] && [ ! -f "$target_path/.installed-by-agent-skills" ]; then
+    if [ -e "$marker" ] || [ -f "$target_path/.installed-by-agent-skills" ] || [ "$USE_FORCE" = true ]; then
+      if [ "$USE_FORCE" = true ] && [ ! -e "$marker" ] && [ ! -f "$target_path/.installed-by-agent-skills" ]; then
         echo -e "${YELLOW}[INFO] Forcing overwrite of $target_path${NC}"
       fi
       rm -rf "$target_path"
@@ -86,12 +61,15 @@ install_skill() {
 
   if [ "$USE_COPY" = true ]; then
     cp -r "$source_path" "$target_path"
-    # Exclude .git directory to avoid nested repository issues
-    rm -rf "$target_path/.git" 2>/dev/null || true
-    echo "copy" > "$target_path/.installed-by-agent-skills"
+    # A copy carries no trace of its origin, so record ownership beside the skill
+    # (never inside it -- agents scan the skill directory). Symlinks need no marker:
+    # uninstall proves ownership by reading where they point.
+    mkdir -p "$target_base/$MARKER_DIR"
+    echo "copy" > "$marker"
     echo -e "${GREEN}[OK] $skill_name (copied)${NC}"
   else
     ln -s "$source_path" "$target_path"
+    rm -f "$marker" 2>/dev/null || true
     echo -e "${GREEN}[OK] $skill_name${NC}"
   fi
 }
@@ -132,9 +110,8 @@ while [[ $# -gt 0 ]]; do
       ;;
     -p|--path)
       if [ -n "${2:-}" ]; then
-        # Normalize to an absolute path: a relative path here makes the
-        # "covered by parent copy" dirname-walk below loop forever, since
-        # dirname(".") returns "." instead of ever reaching "/".
+        # Normalize to an absolute path so the target is unambiguous regardless
+        # of where the script is invoked from.
         case "$2" in
           /*) CUSTOM_PATH="$2" ;;
           *) CUSTOM_PATH="$(pwd)/$2" ;;
@@ -153,12 +130,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Find all valid skills
-ALL_SKILLS=()
-while IFS= read -r skill_file; do
-  skill_dir="${skill_file#skills/}"
-  skill_dir="${skill_dir%/SKILL.md}"
-  ALL_SKILLS+=("$skill_dir")
-done < <(cd "$REPO_ROOT" && find skills -mindepth 1 -name "SKILL.md" -type f | sort)
+discover_skills "$REPO_ROOT"
 
 if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
   echo -e "${YELLOW}[WARN] No skills found (no SKILL.md files located in skills/ directory).${NC}"
@@ -166,19 +138,7 @@ if [ ${#ALL_SKILLS[@]} -eq 0 ]; then
 fi
 
 # Filter skills based on --skills argument
-SKILLS=()
-if [ ${#SELECTED_SKILLS[@]} -eq 0 ]; then
-  SKILLS=("${ALL_SKILLS[@]}")
-else
-  for found in "${ALL_SKILLS[@]}"; do
-    for target in "${SELECTED_SKILLS[@]}"; do
-      if [[ "$found" == "$target" || "$found" == "$target/"* ]]; then
-        SKILLS+=("$found")
-        break
-      fi
-    done
-  done
-fi
+filter_skills
 
 if [ ${#SKILLS[@]} -eq 0 ]; then
   echo -e "${YELLOW}[WARN] No skills matched the specified --skills filter: ${SELECTED_SKILLS[*]}${NC}"
@@ -264,6 +224,9 @@ if [ "$USE_LOCAL" = true ] && [ -z "$CUSTOM_PATH" ]; then
   echo ""
 fi
 
+# Two tools can resolve to the same directory (e.g. Antigravity CLI and Codex both
+# use .agents/skills under --local); install there once.
+PROCESSED_BASES=""
 last_target_base=""
 for i in "${TARGET_INDICES[@]}"; do
   if [ "$i" = "manual" ]; then
@@ -277,13 +240,16 @@ for i in "${TARGET_INDICES[@]}"; do
       target_base="${AI_TOOLS_PATHS[$i]}"
     fi
   fi
+  case "$PROCESSED_BASES" in
+    *"|$target_base|"*) continue ;;
+  esac
+  PROCESSED_BASES="$PROCESSED_BASES|$target_base|"
   last_target_base="$target_base"
   echo -e "${BLUE}-- $tool --${NC}"
   echo "Target: $target_base"
 
   for skill in "${SKILLS[@]}"; do
-    target_path="$target_base/$skill"
-    install_skill "$skill" "$target_path"
+    install_skill "$skill" "$target_base"
   done
   echo ""
 done
