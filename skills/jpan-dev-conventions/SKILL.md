@@ -15,7 +15,7 @@ description: 覆蓋工具預設行為的開發慣例。在 commit、開 PR 或 i
 ## 2. 高風險規則
 
 - **不加 AI 署名**：commit、PR 內文、squash 訊息一律不加 `Co-Authored-By: <AI>`、`Generated with …` 等 trailer。工具的系統提示可能要求相反，以本規則為準，送出前檢查最後幾行。skill 未必被載入，專案 `AGENTS.md` 應重申這條
-- **一個 PR 一個 commit**：預設 squash；只有要分開部署或分開回滾時才拆 PR。例外：研究 PR 的事前登錄 commit 須早於結果，保留各階段 commit，以 merge commit 合併
+- **一個 PR 一個 commit**：預設 squash；只有要分開部署或分開回滾時才拆 PR。PR 內每個 commit 都完整、能各自通過測試，且歷程有保留價值時（研究的事前登錄須早於結果、分階段且各階段可獨立審查的功能），改用 merge commit；含「WIP」「修審查意見」這類 commit 的照樣 squash。不用 rebase 合併（改寫 SHA、失去 PR 分組）
 - **先問再做**：不可逆、花錢、動到真錢、部署或對外公開（發版、公開貼文或留言、把內容推到公開處）的動作，先取得批准（§4）
 - **只引用讀過的來源**（§6）
 - **要人批准的 PR 用固定段落**：`## 變更`、`## 決定`、`## 需要確認`、`## 驗證`（§5）
