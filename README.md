@@ -67,11 +67,11 @@ npx skills add awwesomeman/agent-skills@vX.Y.Z
 plugin 不宣告固定的 `version`，`main` 上每個新 commit 都算新版本。
 
 ```bash
-# Claude Code：先更新 marketplace，再更新 plugin（重開 session 生效）
+# Claude Code：先更新 marketplace，再更新 plugin；在 session 內執行 /reload-plugins 或重開 session 生效
 claude plugin marketplace update awwesomeman
 claude plugin update agent-skills@awwesomeman
 
-# 其他 Agent
+# 其他 Agent（裝到 Claude Code 的，更新後執行 /reload-skills）
 npx skills check
 npx skills update
 ```
