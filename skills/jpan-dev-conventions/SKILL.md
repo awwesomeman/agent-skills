@@ -11,6 +11,7 @@ description: 覆蓋工具預設行為的開發慣例。在 commit、開 PR 或 i
 - 本檔留空的值（上限 N、批准者、標籤名稱）由 repo 提供
 - 能從 repo 檔案、歷史或分支名推斷的自己推斷；推斷不出且會影響結果才詢問
 - 回覆使用專案 `AGENTS.md` 指定的語言
+- 專案沒有 `AGENTS.md` 時，照 [examples/AGENTS-template.md](./examples/AGENTS-template.md) 建立，批准清單與語言向使用者確認
 
 ## 2. 高風險規則
 
