@@ -1,0 +1,35 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      # Every SKILL.md, sub-skills included: the spec requires `name` to match
+      # its directory and allows only known frontmatter keys, which claude.ai
+      # uploads and the Skills API enforce.
+      - name: Validate skills against the Agent Skills spec
+        run: |
+          status=0
+          while IFS= read -r dir; do
+            uvx --from skills-ref==0.1.1 agentskills validate "$dir" || status=1
+          done < <(find skills -name SKILL.md -exec dirname {} \; | sort)
+          exit $status
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate the Claude Code plugin and marketplace
+        run: npx --yes @anthropic-ai/claude-code@2.1.326 plugin validate .

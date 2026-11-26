@@ -9,7 +9,7 @@
     {
       "name": "agent-skills",
       "source": "./",
-      "description": "跨 Agent 共用的 AI Skills：git、python、quant、skill-creator"
+      "description": "跨 Agent 共用的 AI Skills：jpan-dev-conventions、jpan-quant-research"
     }
   ]
 }
