@@ -13,26 +13,45 @@ repo 的 `AGENTS.md` 放該 repo 專屬的規定（批准者、上限、標籤�
 
 ## 安裝
 
+兩種範圍：
+
+- **全域**：所有專案都載入，個人慣用的技能裝這裡
+- **專案**：只在該專案載入，設定可隨 repo 共享給協作者
+
 ### Claude Code
 
 ```bash
 claude plugin marketplace add awwesomeman/agent-skills
-claude plugin install agent-skills@awwesomeman
+claude plugin install agent-skills@awwesomeman                   # 全域（預設 --scope user）
+claude plugin install agent-skills@awwesomeman --scope project   # 專案：在專案根目錄執行
 ```
+
+`--scope` 只決定啟用設定寫在哪個設定檔，不接受路徑；plugin 檔案一律存放在 `~/.claude/plugins/cache/`。
+
+| `--scope` | 寫入 | 生效範圍 |
+|---|---|---|
+| `user`（預設） | `~/.claude/settings.json` | 所有專案 |
+| `project` | 目前專案的 `.claude/settings.json` | 該專案，隨 repo commit，協作者開啟時會提示安裝 |
+| `local` | 目前專案的 `.claude/settings.local.json` | 該專案、只有自己，不 commit |
+
+安裝或更新後執行 `/reload-plugins` 或重開 session 生效。
 
 在 session 內也可用 `/plugin marketplace add ...`、`/plugin install ...`。技能以 `/agent-skills:jpan-dev-conventions` 等名稱呼叫。
 
 ### 其他 Agent
 
-[`npx skills`](https://github.com/vercel-labs/skills) 可安裝到 Codex、Gemini CLI、Cursor、GitHub Copilot、OpenCode、Windsurf 等支援 Agent Skills 的工具：
+[`npx skills`](https://github.com/vercel-labs/skills) 可安裝到 Codex、Gemini CLI、Cursor、GitHub Copilot、Antigravity 等支援 Agent Skills 的工具，依各工具的規定放到對應目錄：
 
 ```bash
-npx skills add awwesomeman/agent-skills                   # 互動選擇技能與工具
-npx skills add awwesomeman/agent-skills -g --skill '*'    # 全部技能，裝到使用者層級
-npx skills add awwesomeman/agent-skills -a codex --skill jpan-dev-conventions
+npx skills add awwesomeman/agent-skills -g    # 全域
+npx skills add awwesomeman/agent-skills       # 專案：在專案根目錄執行
+npx skills add awwesomeman/agent-skills -g -a codex -a antigravity --skill jpan-dev-conventions
 ```
 
-不加 `-g` 時裝到目前專案（例如 `.agents/skills/`）；加 `-g` 時裝到家目錄。
+- 不加 `-g` 也不加 `-y` 時，會互動詢問範圍；不加 `-a` 時，自動偵測已安裝的工具或互動選擇
+- 專案範圍多數工具共用 `.agents/skills/`，Claude Code 為 `.claude/skills/`；全域路徑各工具不同（例如 Codex `~/.agents/skills/`、Antigravity `~/.gemini/config/skills/`），完整對照見 [skills 的 agent 清單](https://github.com/vercel-labs/skills/blob/main/docs/agents.md)
+- 預設以 symlink 指向一份共用副本；要各自複製加 `--copy`
+- 安裝路徑由各工具的規定決定，沒有自訂路徑的選項；Claude Code 內執行 `/reload-skills` 或重開 session 生效
 
 ### 固定版本
 
