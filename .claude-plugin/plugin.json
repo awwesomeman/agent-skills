@@ -1,7 +1,6 @@
 {
   "name": "agent-skills",
-  "description": "跨 Agent 共用的 AI Skills：git、python、quant、skill-creator",
-  "version": "0.1.0",
+  "description": "跨 Agent 共用的 AI Skills：jpan-dev-conventions、jpan-quant-research",
   "author": { "name": "jason pan" },
   "homepage": "https://github.com/awwesomeman/agent-skills",
   "license": "MIT"
