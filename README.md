@@ -6,7 +6,7 @@
 
 | Skill | 何時載入 | 內容 |
 |-------|----------|------|
-| [jpan-dev-conventions](./skills/jpan-dev-conventions/SKILL.md) | commit、開 PR、審查合併、派子代理、寫文件、回報與引用、不可逆或公開的動作之前 | repo 規則優先、不加 AI 署名、一個 PR 一個 commit、批准與安全、派工與審查、查證與來源、文件寫法、任務追蹤（附 `TASKS.local.md` 範本） |
+| [jpan-dev-conventions](./skills/jpan-dev-conventions/SKILL.md) | commit、開 PR、審查合併、派子代理、寫文件、回報與引用、不可逆或公開的動作之前 | repo 規則優先、不加 AI 署名、一個 PR 一個 commit、批准與安全、派工與審查（含模型分級）、查證與來源、文件寫法、任務追蹤（附 `TASKS.local.md` 範本）；`references/` 放供應商模型文件連結與工具專屬備註（Claude Code） |
 | [jpan-quant-research](./skills/jpan-quant-research/SKILL.md) | 設計實驗、測試因子或策略、寫回測或特徵程式、回報研究結果之前 | 事前登錄與試驗計數、忠於原方法、前視與時間戳、成交真實性 |
 
 repo 的 `AGENTS.md` 放該 repo 專屬的規定（批准者、上限、標籤、語言），與技能不同時以 `AGENTS.md` 為準。必須每次生效的規則（例如不加 AI 署名）也應寫進 `AGENTS.md`，因為技能要由模型決定是否載入。
@@ -45,13 +45,26 @@ claude plugin install agent-skills@awwesomeman --scope project   # 專案：在�
 ```bash
 npx skills add awwesomeman/agent-skills -g    # 全域
 npx skills add awwesomeman/agent-skills       # 專案：在專案根目錄執行
-npx skills add awwesomeman/agent-skills -g -a codex -a antigravity --skill jpan-dev-conventions
 ```
 
 - 不加 `-g` 也不加 `-y` 時，會互動詢問範圍；不加 `-a` 時，自動偵測已安裝的工具或互動選擇
 - 專案範圍多數工具共用 `.agents/skills/`，Claude Code 為 `.claude/skills/`；全域路徑各工具不同（例如 Codex `~/.agents/skills/`、Antigravity `~/.gemini/config/skills/`），完整對照見 [skills 的 agent 清單](https://github.com/vercel-labs/skills/blob/main/docs/agents.md)
 - 預設以 symlink 指向一份共用副本；要各自複製加 `--copy`
 - 安裝路徑由各工具的規定決定，沒有自訂路徑的選項；Claude Code 內執行 `/reload-skills` 或重開 session 生效
+
+### 只裝特定 skill
+
+`npx skills add` 預設安裝 repo 內所有 skill；`--skill`（`-s`）指定名稱，可重複，`--list`（`-l`）列出可裝的 skill 而不安裝：
+
+```bash
+npx skills add awwesomeman/agent-skills --list
+npx skills add awwesomeman/agent-skills --skill jpan-dev-conventions -g    # 全域
+npx skills add awwesomeman/agent-skills --skill jpan-dev-conventions       # 專案：在專案根目錄執行
+npx skills add awwesomeman/agent-skills --skill jpan-dev-conventions --skill jpan-quant-research -g -a codex -a antigravity
+```
+
+- Claude Code 的 plugin 一次安裝兩個 skill，不能只裝其中一個；要只裝一個時，改用 `npx skills add ... --skill <name> -a claude-code`，裝到專案的 `.claude/skills/` 或全域的 `~/.claude/skills/`，之後執行 `/reload-skills` 或重開 session 生效
+- plugin 只能啟用或停用整個 plugin，不能逐 skill 選擇（見 [Install and manage plugins](https://code.claude.com/docs/en/discover-plugins)；[skillOverrides 不適用於 plugin 的 skill](https://code.claude.com/docs/en/skills#override-skill-visibility-from-settings)）
 
 ### 固定版本
 
